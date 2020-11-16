@@ -1,8 +1,9 @@
 library(osmdata)
+library(dplyr)
 bbx <- getbb("Orleans France")
 
-min_lon <- 1.84; max_lon <- 1.99
-min_lat <- 47.81; max_lat <- 47.93
+min_lon <- 1.8; max_lon <- 2.03
+min_lat <- 47.81; max_lat <- 47.98
 bbx <- rbind(x = c(min_lon, max_lon), y = c(min_lat, max_lat))
 colnames(bbx) <- c("min", "max")
 
@@ -90,6 +91,21 @@ osm_basemap(bbox = bbox) %>%
   add_osm_objects(coast$sea, col = "cadetblue2") %>%
   add_osm_objects(coast$land, col = "sienna2")
 
+JD <- highways[["osm_lines"]] %>% 
+  filter(name == "Rue John Deere")
+
+JD <- highways[["osm_lines"]] %>% 
+  filter(name %in% c("Avenue Gaston Galloux", "Avenue Gaston Galloux - Pont René Thinat"))
+
+home_coord <- c(1.927538, 47.828039)
+JD_coord <- c(1.915899, 47.951552)
+
+library(osrm)
+pers_route <- osrmRoute(src = c("A", home_coord),
+                        dst = c("B", JD_coord),
+                        returnclass = "sf",
+                        overview = "full")
+
 ggplot() +
   # theme_void() +
   geom_sf(data = streets$osm_lines,
@@ -126,6 +142,24 @@ ggplot() +
           size = .2,
           linetype = "dotdash",
           alpha = .5) +
+  # geom_sf(data = JD,
+  #         inherit.aes = FALSE,
+  #         color = "orange",
+  #         size = 1,
+  #         alpha = 1) +
+  geom_sf(data = st_geometry(pers_route),
+          inherit.aes = FALSE,
+          col = "red",
+          size = 1,
+          alpha = 0.5) +
   coord_sf(xlim = c(min_lon, max_lon),
            ylim = c(min_lat, max_lat),
            expand = FALSE)
+
+ggsave(last_plot(), 
+       filename = "Map_art.pdf",
+       scale = 1, 
+       width = 36, 
+       height = 24, 
+       units = "in",
+       dpi = 500)
