@@ -85,11 +85,10 @@ coast_data <- bbx %>%
   add_osm_feature(key = "natural", value = "coastline") %>%
   osmdata_sf()
 
-coast <- osmplotr::osm_line2poly(coast_data$osm_lines, bbox = bbx)
-
-osm_basemap(bbox = bbox) %>%
-  add_osm_objects(coast$sea, col = "cadetblue2") %>%
-  add_osm_objects(coast$land, col = "sienna2")
+water <- bbx %>% 
+  opq() %>% 
+  add_osm_feature(key = 'natural', value = 'water') %>% 
+  osmdata_sf()
 
 JD <- highways[["osm_lines"]] %>% 
   filter(name == "Rue John Deere")
@@ -108,6 +107,16 @@ pers_route <- osrmRoute(src = c("A", home_coord),
 
 ggplot() +
   # theme_void() +
+  geom_sf(data = sea,
+          inherit.aes = FALSE,
+          fill = "steelblue",
+          size = .8,
+          alpha = .7) +
+  geom_sf(data = coast_data$osm_polygons,
+          inherit.aes = FALSE,
+          color = "black",
+          size = .8,
+          alpha = 0.8) +
   geom_sf(data = streets$osm_lines,
           col = color_roads,
           size = .4,
@@ -121,11 +130,16 @@ ggplot() +
           color = "black",
           size = .8,
           alpha = 0.8) +
-  geom_sf(data = coast_data$osm_polygons,
+  geom_sf(data = water$osm_polygons,
           inherit.aes = FALSE,
-          color = "red",
-          size = .8,
-          alpha = 0.3) +
+          fill = "steelblue",
+          size = .4,
+          alpha = .7) +
+  geom_sf(data = water_bodies,
+          inherit.aes = FALSE,
+          fill = "steelblue",
+          size = .4,
+          alpha = .7) +
   geom_sf(data = river$osm_lines,
           inherit.aes = FALSE,
           color = "steelblue",
@@ -163,3 +177,50 @@ ggsave(last_plot(),
        height = 24, 
        units = "in",
        dpi = 500)
+
+
+library(lwgeom)
+blade <- coast_data$osm_lines %>% st_union %>% st_line_merge
+blade %>% plot()
+
+p_bbx <- rbind(c(min_lon, min_lat),
+               c(max_lon, min_lat),
+               c(max_lon, max_lat),
+               c(min_lon, max_lat),
+               c(min_lon, min_lat))
+# Putting the coordinates into a squared polygon object
+pol <- st_polygon(list(p_bbx)) %>% st_geometry
+st_crs(pol) <- 4326
+pol %>% plot()
+
+
+multipol <- st_split(st_geometry(pol), st_geometry(blade))
+land <- st_cast(multipol[[1]][[1]], 'POLYGON') %>% st_geometry %>% st_sf
+st_crs(land) <- 4326
+land %>% plot()
+sea <- st_difference(pol, land) %>% st_geometry %>% st_sf
+st_crs(sea) <- 4326
+sea %>% plot()
+
+sea <- st_cast(multipol[[1]][[2]], 'POLYGON') %>% st_geometry %>% st_sf
+st_crs(sea) <- 4326
+sea %>% plot()
+
+blade <- water$osm_lines %>% st_union %>% st_line_merge
+blade %>% plot()
+multipol <- st_split(st_geometry(pol), st_geometry(blade))
+
+tmp <- st_cast(multipol[[1]][[1]], 'POLYGON') %>% st_geometry() %>% st_sf()
+st_crs(tmp) <- 4326
+
+water_bodies <- st_difference(pol, tmp) %>% st_geometry %>% st_sf
+st_crs(sea) <- 4326
+
+2:(multipol[[1]] %>% length()) %>% 
+  purrr::walk(function(x) {
+    df <- st_cast(multipol[[1]][[x]], 'POLYGON') %>% st_geometry() %>% st_sf()
+    st_crs(df) <- 4326
+    
+    g <- ggplot() + geom_sf(data = df, fill = "red", alpha = 0.5)
+    print(g)
+  })
