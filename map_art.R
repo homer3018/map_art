@@ -1,5 +1,9 @@
 library(osmdata)
 library(dplyr)
+library(ggplot2)
+library(sf)
+library(lwgeom)
+
 bbx <- getbb("Orleans France")
 
 min_lon <- 1.8; max_lon <- 2.03
@@ -25,8 +29,6 @@ highways <- bbx %>%
                           "tertiary_link")) %>%
   osmdata_sf()
 
-library(ggplot2)
-library(sf)
 ggplot() +
   geom_sf(data = highways$osm_lines,
           aes(color = highway),
@@ -110,6 +112,7 @@ ggplot() +
   geom_sf(data = sea,
           inherit.aes = FALSE,
           fill = "steelblue",
+          color = "steelblue",
           size = .8,
           alpha = .7) +
   geom_sf(data = coast_data$osm_polygons,
@@ -133,13 +136,14 @@ ggplot() +
   geom_sf(data = water$osm_polygons,
           inherit.aes = FALSE,
           fill = "steelblue",
+          color = "steelblue",
           size = .4,
           alpha = .7) +
-  geom_sf(data = water_bodies,
-          inherit.aes = FALSE,
-          fill = "steelblue",
-          size = .4,
-          alpha = .7) +
+  # geom_sf(data = water_bodies,
+  #         inherit.aes = FALSE,
+  #         fill = "steelblue",
+  #         size = .4,
+  #         alpha = .7) +
   geom_sf(data = river$osm_lines,
           inherit.aes = FALSE,
           color = "steelblue",
@@ -161,11 +165,11 @@ ggplot() +
   #         color = "orange",
   #         size = 1,
   #         alpha = 1) +
-  geom_sf(data = st_geometry(pers_route),
-          inherit.aes = FALSE,
-          col = "red",
-          size = 1,
-          alpha = 0.5) +
+  # geom_sf(data = st_geometry(pers_route),
+  #         inherit.aes = FALSE,
+  #         col = "red",
+  #         size = 1,
+  #         alpha = 0.5) +
   coord_sf(xlim = c(min_lon, max_lon),
            ylim = c(min_lat, max_lat),
            expand = FALSE)
@@ -179,7 +183,7 @@ ggsave(last_plot(),
        dpi = 500)
 
 
-library(lwgeom)
+
 blade <- coast_data$osm_lines %>% st_union %>% st_line_merge
 blade %>% plot()
 
@@ -193,7 +197,6 @@ pol <- st_polygon(list(p_bbx)) %>% st_geometry
 st_crs(pol) <- 4326
 pol %>% plot()
 
-
 multipol <- st_split(st_geometry(pol), st_geometry(blade))
 land <- st_cast(multipol[[1]][[1]], 'POLYGON') %>% st_geometry %>% st_sf
 st_crs(land) <- 4326
@@ -202,13 +205,26 @@ sea <- st_difference(pol, land) %>% st_geometry %>% st_sf
 st_crs(sea) <- 4326
 sea %>% plot()
 
-sea <- st_cast(multipol[[1]][[2]], 'POLYGON') %>% st_geometry %>% st_sf
-st_crs(sea) <- 4326
-sea %>% plot()
-
 blade <- water$osm_lines %>% st_union %>% st_line_merge
 blade %>% plot()
 multipol <- st_split(st_geometry(pol), st_geometry(blade))
+
+1:(multipol[[1]] %>% length()) %>% 
+  purrr::walk(function(x) {
+    df <- st_cast(multipol[[1]][[x]], 'POLYGON') %>% st_geometry() %>% st_sf()
+    # st_crs(df) <- 4326
+    
+    g <- ggplot() +
+      geom_sf(data = df, fill = "red", alpha = 0.5) +
+      coord_sf(xlim = c(min_lon, max_lon),
+               ylim = c(min_lat, max_lat),
+               expand = FALSE)
+    print(g)
+  })
+
+sea <- st_cast(multipol[[1]][[3]], 'POLYGON') %>% st_union(st_cast(multipol[[1]][[2]], 'POLYGON')) %>% st_geometry %>% st_sf
+st_crs(sea) <- 4326
+sea %>% plot()
 
 tmp <- st_cast(multipol[[1]][[1]], 'POLYGON') %>% st_geometry() %>% st_sf()
 st_crs(tmp) <- 4326
@@ -216,11 +232,4 @@ st_crs(tmp) <- 4326
 water_bodies <- st_difference(pol, tmp) %>% st_geometry %>% st_sf
 st_crs(sea) <- 4326
 
-2:(multipol[[1]] %>% length()) %>% 
-  purrr::walk(function(x) {
-    df <- st_cast(multipol[[1]][[x]], 'POLYGON') %>% st_geometry() %>% st_sf()
-    st_crs(df) <- 4326
-    
-    g <- ggplot() + geom_sf(data = df, fill = "red", alpha = 0.5)
-    print(g)
-  })
+
