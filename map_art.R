@@ -6,8 +6,10 @@ library(lwgeom)
 
 bbx <- getbb("Orleans France")
 
-min_lon <- 1.8; max_lon <- 2.03
-min_lat <- 47.81; max_lat <- 47.98
+min_lon <- 1.8
+max_lon <- 2.03
+min_lat <- 47.81
+max_lat <- 47.98
 bbx <- rbind(x = c(min_lon, max_lon), y = c(min_lat, max_lat))
 colnames(bbx) <- c("min", "max")
 
@@ -50,59 +52,80 @@ colnames(bbx_big) <- c("min", "max")
 
 bbx <- getbb("brisbane australia")
 
-min_lon <- 152.7; max_lon <- 153.5
-min_lat <- -27.7; max_lat <- -27
+min_lon <- 152.7
+max_lon <- 153.5
+min_lat <- -27.7
+max_lat <- -27
 bbx <- rbind(x = c(min_lon, max_lon), y = c(min_lat, max_lat))
 colnames(bbx) <- c("min", "max")
 
 highways <- bbx_big %>%
   opq() %>%
-  add_osm_feature(key = "highway",
-                  value = c("motorway", "trunk",
-                          "primary", "secondary",
-                          "tertiary", "motorway_link",
-                          "trunk_link", "primary_link",
-                          "secondary_link",
-                          "tertiary_link")) %>%
+  add_osm_feature(
+    key = "highway",
+    value = c(
+      "motorway", "trunk",
+      "primary", "secondary",
+      "tertiary", "motorway_link",
+      "trunk_link", "primary_link",
+      "secondary_link",
+      "tertiary_link"
+    )
+  ) %>%
   osmdata_sf()
 
 ggplot() +
-  geom_sf(data = highways$osm_lines,
-          aes(color = highway),
-          size = .4,
-          alpha = .65) +
+  geom_sf(
+    data = highways$osm_lines,
+    aes(color = highway),
+    size = .4,
+    alpha = .65
+  ) +
   theme_void()
 
 streets <- bbx_big %>%
   opq() %>%
-  add_osm_feature(key = "highway",
-                  value = c("residential", "living_street",
-                            "service", "unclassified",
-                            "pedestrian", "footway",
-                            "track", "path")) %>%
+  add_osm_feature(
+    key = "highway",
+    value = c(
+      "residential", "living_street",
+      "service", "unclassified",
+      "pedestrian", "footway",
+      "track", "path"
+    )
+  ) %>%
   osmdata_sf()
 
 ggplot() +
-  geom_sf(data = streets$osm_lines,
-          aes(color = highway),
-          size = .4,
-          alpha = .65) +
+  geom_sf(
+    data = streets$osm_lines,
+    aes(color = highway),
+    size = .4,
+    alpha = .65
+  ) +
   theme_void()
 
 color_roads <- rgb(0.42, 0.449, 0.488)
 ggplot() +
-  geom_sf(data = streets$osm_lines,
-          col = color_roads,
-          size = .4,
-          alpha = .65) +
-  geom_sf(data = highways$osm_lines,
-          col = color_roads,
-          size = .6,
-          alpha = .8) +
-  coord_sf(xlim = c(min_lon, max_lon),
-           ylim = c(min_lat, max_lat),
-           expand = FALSE) +
-  theme(legend.position = F) + theme_void()
+  geom_sf(
+    data = streets$osm_lines,
+    col = color_roads,
+    size = .4,
+    alpha = .65
+  ) +
+  geom_sf(
+    data = highways$osm_lines,
+    col = color_roads,
+    size = .6,
+    alpha = .8
+  ) +
+  coord_sf(
+    xlim = c(min_lon, max_lon),
+    ylim = c(min_lat, max_lat),
+    expand = FALSE
+  ) +
+  theme(legend.position = F) +
+  theme_void()
 
 river <- bbx_big %>%
   opq() %>%
@@ -125,78 +148,94 @@ coast_data <- bbx_big %>%
   osmdata_sf()
 
 water <- bbx_big %>%
-  opq() %>% 
-  add_osm_feature(key = 'natural', value = 'water') %>% 
+  opq() %>%
+  add_osm_feature(key = "natural", value = "water") %>%
   osmdata_sf()
 
-JD <- highways[["osm_lines"]] %>% 
+JD <- highways[["osm_lines"]] %>%
   filter(name == "Rue John Deere")
 
-JD <- highways[["osm_lines"]] %>% 
-  filter(name %in% c("Avenue Gaston Galloux", "Avenue Gaston Galloux - Pont René Thinat"))
+JD <- highways[["osm_lines"]] %>%
+  filter(name %in% c("Avenue Gaston Galloux",
+                     "Avenue Gaston Galloux - Pont René Thinat"))
 
 home_coord <- c(1.927538, 47.828039)
 JD_coord <- c(1.915899, 47.951552)
 
 library(osrm)
-pers_route <- osrmRoute(src = c("A", home_coord),
-                        dst = c("B", JD_coord),
-                        returnclass = "sf",
-                        overview = "full")
+pers_route <- osrmRoute(
+  src = c("A", home_coord),
+  dst = c("B", JD_coord),
+  returnclass = "sf",
+  overview = "full"
+)
 
 ggplot() +
   # theme_void() +
-  geom_sf(data = sea,
-          inherit.aes = FALSE,
-          fill = "steelblue",
-          color = "steelblue",
-          size = .8,
-          alpha = .7) +
-  geom_sf(data = coast_data$osm_polygons,
-          inherit.aes = FALSE,
-          color = "black",
-          size = .8,
-          alpha = 0.8) +
-  geom_sf(data = streets$osm_lines,
-          col = color_roads,
-          size = .4,
-          alpha = .65) +
-  geom_sf(data = highways$osm_lines,
-          col = color_roads,
-          size = .6,
-          alpha = .8) +
-  geom_sf(data = coast_data$osm_lines,
-          inherit.aes = FALSE,
-          color = "black",
-          size = .8,
-          alpha = 0.8) +
-  geom_sf(data = water$osm_polygons,
-          inherit.aes = FALSE,
-          fill = "steelblue",
-          color = "steelblue",
-          size = .4,
-          alpha = .7) +
+  geom_sf(
+    data = sea,
+    inherit.aes = FALSE,
+    fill = "steelblue",
+    color = "steelblue",
+    size = .8,
+    alpha = .7
+  ) +
+  geom_sf(
+    data = coast_data$osm_polygons,
+    inherit.aes = FALSE,
+    color = "black",
+    size = .8,
+    alpha = 0.8
+  ) +
+  geom_sf(
+    data = streets$osm_lines,
+    col = color_roads,
+    size = .4,
+    alpha = .65
+  ) +
+  geom_sf(
+    data = highways$osm_lines,
+    col = color_roads,
+    size = .6,
+    alpha = .8
+  ) +
+  geom_sf(
+    data = water$osm_polygons,
+    inherit.aes = FALSE,
+    fill = "steelblue",
+    color = "steelblue",
+    size = .4,
+    alpha = .7
+  ) +
   # geom_sf(data = water_bodies,
   #         inherit.aes = FALSE,
   #         fill = "steelblue",
   #         size = .4,
   #         alpha = .7) +
-  geom_sf(data = river$osm_lines,
-          inherit.aes = FALSE,
-          color = "steelblue",
-          size = .8,
-          alpha = .7) +
-  geom_sf(data = lake$osm_lines,
-          inherit.aes = FALSE,
-          color = "steelblue",
-          size = .8,
-          alpha = .7) +
-  geom_sf(data = railway$osm_lines,
-          inherit.aes = FALSE,
-          color = "black",
-          size = .2,
-          linetype = "dotdash",
-          alpha = .5) +
+  geom_sf(
+    data = river$osm_lines,
+    inherit.aes = FALSE,
+    fill = "steelblue",
+    color = "steelblue",
+    size = .8,
+    alpha = .7
+  ) +
+  geom_sf(
+    data = lake$osm_lines,
+    inherit.aes = FALSE,
+    fill = "steelblue",
+    color = "steelblue",
+    size = .8,
+    alpha = .7
+  ) +
+  geom_sf(
+    data = railway$osm_lines,
+    inherit.aes = FALSE,
+    color = "black",
+    size = .2,
+    linetype = "dotdash",
+    alpha = .5
+  ) +
   # geom_sf(data = JD,
   #         inherit.aes = FALSE,
   #         color = "orange",
@@ -223,7 +262,8 @@ ggplot() +
 #   geom_text(aes(x = center[1],
 #                 y = center[2] + 0.772 * size_lat),
 #             label = paste0("___",
-#                            rep(" ", loc_lab %>% stringr::str_length() + 14) %>%
+#                            rep(" ", loc_lab %>%
+#                                  stringr::str_length() + 14) %>%
 #                              stringr::str_c(collapse = ""),
 #                            "___"),
 #             size = 12,
@@ -249,7 +289,8 @@ ggplot() +
   geom_text(aes(x = center[1],
                 y = center[2] - 0.73 * size_lat),
             label = paste0("___",
-                           rep(" ", loc_lab %>% stringr::str_length() + 14) %>%
+                           rep(" ", loc_lab %>%
+                                 stringr::str_length() + 14) %>%
                              stringr::str_c(collapse = ""),
                            "___"),
             size = 12,
@@ -296,16 +337,20 @@ ggsave(last_plot(),
 
 
 
-blade <- coast_data$osm_lines %>% st_union %>% st_line_merge
+blade <- coast_data$osm_lines %>%
+  st_union() %>%
+  st_line_merge()
 blade %>% plot()
 
-p_bbx <- rbind(c(min_lon, min_lat),
-               c(max_lon, min_lat),
-               c(max_lon, max_lat),
-               c(min_lon, max_lat),
-               c(min_lon, min_lat))
+p_bbx <- rbind(
+  c(min_lon, min_lat),
+  c(max_lon, min_lat),
+  c(max_lon, max_lat),
+  c(min_lon, max_lat),
+  c(min_lon, min_lat)
+)
 # Putting the coordinates into a squared polygon object
-pol <- st_polygon(list(p_bbx)) %>% st_geometry
+pol <- st_polygon(list(p_bbx)) %>% st_geometry()
 st_crs(pol) <- 4326
 pol %>% plot()
 
